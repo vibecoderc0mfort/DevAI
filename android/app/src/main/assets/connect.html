@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DevAI</title>
+<style>
+  :root{color-scheme:light dark;--bg:#fff;--ink:#000;--mute:#666;--line:#d8d8d8;--err:#b00020}
+  @media (prefers-color-scheme:dark){:root{--bg:#000;--ink:#fff;--mute:#9b9b9b;--line:#2c2c2c;--err:#ff6b6b}}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:28px;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,sans-serif}
+  h1{margin:20px 0 6px;font-size:32px;letter-spacing:-.03em}
+  p{margin:0 0 14px;color:var(--mute)}
+  .err{color:var(--err)}
+  input{width:100%;font:inherit;padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:none;color:var(--ink)}
+  input:focus{outline:2px solid var(--ink)}
+  button{margin-top:12px;width:100%;font:inherit;font-weight:600;padding:14px;border:0;border-radius:16px;background:var(--ink);color:var(--bg)}
+  code{font-family:ui-monospace,monospace}
+</style>
+</head>
+<body>
+  <h1>Подключение к DevAI</h1>
+  <p id="msg" class="err"></p>
+  <p>Введите адрес компьютера, на котором запущен DevAI, например <code>192.168.1.5:7860</code>.</p>
+  <input id="addr" inputmode="url" autocapitalize="off" autocorrect="off" placeholder="192.168.1.5:7860">
+  <button id="go">Подключиться</button>
+  <p style="margin-top:20px">На компьютере запустите <code>python devai.py --host 0.0.0.0</code> или DevAI.exe с этим параметром. Телефон и компьютер должны быть в одной Wi-Fi сети.</p>
+<script>
+  const a = document.getElementById('addr');
+  const app = window.DevAIApp;
+  if(app){
+    a.value = app.saved().replace(/^https?:\/\//, '');
+    document.getElementById('msg').textContent = app.message();
+  }
+  const go = () => { if(app && a.value.trim()) app.connect(a.value); };
+  document.getElementById('go').onclick = go;
+  a.addEventListener('keydown', e => { if(e.key === 'Enter') go(); });
+</script>
+</body>
+</html>

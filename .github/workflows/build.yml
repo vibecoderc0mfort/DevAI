@@ -1,0 +1,57 @@
+name: Build
+
+on:
+  workflow_dispatch:        # ручной запуск: вкладка Actions → Build → Run workflow
+  push:
+    tags: ["v*"]            # git tag v0.1.0 && git push --tags
+
+permissions:
+  contents: write
+
+jobs:
+  windows-exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pyinstaller
+      - run: pyinstaller --onefile --name DevAI --icon icon.ico --add-data "index.html;." --add-data "avatar.png;." devai.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DevAI-windows
+          path: dist/DevAI.exe
+
+  android-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+      - name: Build debug APK
+        working-directory: android
+        run: gradle assembleDebug --no-daemon
+      - run: cp android/app/build/outputs/apk/debug/app-debug.apk DevAI.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DevAI-android
+          path: DevAI.apk
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows-exe, android-apk]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*

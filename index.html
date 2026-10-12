@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DevAI</title>
+<link rel="icon" href="/avatar.png">
+<style>
+:root{
+  --bg:#fff; --ink:#000; --mute:#666; --line:#d8d8d8; --panel:#f2f2f2;
+  --inv-bg:#000; --inv-ink:#fff; --err:#b00020;
+  --sans:"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#000; --ink:#fff; --mute:#9b9b9b; --line:#2c2c2c; --panel:#151515;
+        --inv-bg:#fff; --inv-ink:#000; --err:#ff6b6b}
+  .logo{box-shadow:0 0 0 1px var(--line)}
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans);display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+button,select,textarea{font:inherit}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+header{flex:none;display:flex;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;border-bottom:1px solid var(--line)}
+.logo{width:32px;height:32px;border-radius:22%;display:block;flex:none}
+h1{margin:0;font-size:20px;font-weight:760;letter-spacing:-.03em}
+.ver{color:var(--mute);font-size:13px;font-weight:500;letter-spacing:0;margin-left:6px}
+.status{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--mute)}
+.dot{width:10px;height:10px;border-radius:50%;border:2px solid var(--ink);background:var(--ink);flex:none}
+.dot.off{background:transparent}
+select{font-size:14px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 8px;max-width:170px}
+
+#banner{flex:none;margin:0;padding:10px 16px;font-size:14px;background:var(--panel);border-bottom:1px solid var(--line)}
+#banner:empty{display:none}
+#banner code{font-family:var(--mono);font-size:.92em}
+
+#chat{flex:1;overflow-y:auto;padding:24px 16px}
+.wrap{max-width:760px;margin:0 auto}
+
+.empty{text-align:center;padding-top:6vh}
+.empty img{width:92px;height:92px;border-radius:22%}
+.empty h2{margin:24px 0 8px;font-size:36px;line-height:1.1;font-weight:760;letter-spacing:-.035em}
+.empty p{margin:0;color:var(--mute)}
+.starters{margin:28px auto 0;max-width:460px;text-align:left;border-top:1px solid var(--line)}
+.starters button{display:block;width:100%;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);padding:14px 4px;text-align:left;cursor:pointer}
+.starters button:hover{background:var(--panel)}
+
+.msg{display:flex;gap:12px;margin:0 0 22px}
+.msg.user{justify-content:flex-end}
+.msg.user .body{background:var(--inv-bg);color:var(--inv-ink);padding:10px 16px;border-radius:22px 22px 6px 22px;max-width:85%;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.assistant img{width:28px;height:28px;border-radius:22%;flex:none;margin-top:2px}
+.msg.assistant .body{flex:1;min-width:0;overflow-wrap:anywhere}
+.body p{margin:0 0 .8em}
+.body h3,.body h4,.body h5{margin:1.1em 0 .4em;line-height:1.25;letter-spacing:-.01em}
+.body h3{font-size:1.3em}.body h4{font-size:1.15em}.body h5{font-size:1em}
+.body ul,.body ol{margin:0 0 .8em;padding-left:1.4em}
+.body a{color:inherit}
+.body code{font-family:var(--mono);font-size:.9em;background:var(--panel);padding:.1em .35em;border-radius:6px}
+
+.code{border:1px solid var(--line);border-radius:12px;margin:.8em 0;overflow:hidden;background:var(--panel)}
+.code-head{display:flex;justify-content:space-between;align-items:center;padding:6px 8px 6px 14px;border-bottom:1px solid var(--line);font-size:13px;color:var(--mute)}
+.code-head button{color:var(--ink);background:none;border:1px solid var(--line);border-radius:8px;padding:2px 10px;font-size:13px;cursor:pointer}
+.code pre{margin:0;padding:14px;overflow-x:auto;font:13.5px/1.55 var(--mono);tab-size:4}
+.code pre code{background:none;padding:0;font-size:inherit;border-radius:0}
+
+.note{border:1px solid var(--line);border-radius:12px;padding:10px 14px;color:var(--mute);font-size:14px;margin:0 0 .8em}
+.note.err{color:var(--err);border-color:var(--err)}
+.note code{font-family:var(--mono)}
+details.src{margin:0 0 .8em;font-size:14px;color:var(--mute)}
+details.src summary{cursor:pointer}
+details.src ol{margin:.4em 0 0;padding-left:1.4em}
+
+footer{flex:none;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:var(--bg)}
+.box{max-width:760px;margin:0 auto;border:1px solid var(--line);border-radius:22px;display:flex;align-items:flex-end;gap:8px;padding:8px 8px 8px 16px}
+.box:focus-within{border-color:var(--ink)}
+textarea{flex:1;border:0;outline:0;resize:none;background:none;color:var(--ink);max-height:200px;padding:8px 0;line-height:1.45}
+#go{border:0;border-radius:16px;background:var(--inv-bg);color:var(--inv-ink);font-weight:600;padding:9px 16px;cursor:pointer;min-width:112px}
+#go:disabled{opacity:.35;cursor:default}
+.opts{max-width:760px;margin:8px auto 0;display:flex;gap:18px;align-items:center;font-size:14px;color:var(--mute);padding:0 6px}
+.opts label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.opts label.dis{opacity:.5;cursor:default}
+.opts button{background:none;border:0;color:var(--mute);padding:0;cursor:pointer;text-decoration:underline}
+.opts input{accent-color:var(--ink)}
+</style>
+</head>
+<body>
+
+<header>
+  <img class="logo" src="/avatar.png" alt="DevAI">
+  <h1>DevAI<span class="ver">0.1 alpha</span></h1>
+  <div class="status" id="status" title="">
+    <span class="dot off" id="dot"></span><span id="stText">Проверяю сеть</span>
+  </div>
+  <select id="model" aria-label="Модель"></select>
+</header>
+
+<p id="banner"></p>
+
+<main id="chat"><div class="wrap" id="wrap"></div></main>
+
+<footer>
+  <div class="box">
+    <textarea id="input" rows="1" placeholder="Опишите, что нужно написать или починить" aria-label="Сообщение"></textarea>
+    <button id="go">Отправить</button>
+  </div>
+  <div class="opts">
+    <label id="webLabel"><input type="checkbox" id="web"> Искать в интернете</label>
+    <button id="newChat">Новый чат</button>
+    <button id="server" hidden>Сменить сервер</button>
+  </div>
+</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const chat = $('#chat'), wrap = $('#wrap'), input = $('#input'), go = $('#go'),
+      web = $('#web'), webLabel = $('#webLabel'), modelSel = $('#model'),
+      dot = $('#dot'), stText = $('#stText'), stBox = $('#status'), banner = $('#banner');
+
+let messages = [], ctrl = null, busy = false;
+let status = {online:false, ollama:false, models:[], default:''};
+let savedModel = '';
+const KEY = 'devai.v1';
+
+/* ---------- мини-рендер Markdown (без внешних библиотек, работает офлайн) ---------- */
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+function inline(s){
+  s = esc(s);
+  s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  s = s.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+  return s;
+}
+
+function textBlock(text){
+  let out = '', list = null, para = [], m;
+  const flush = () => { if(para.length){ out += '<p>' + inline(para.join(' ')) + '</p>'; para = []; } };
+  const close = () => { if(list){ out += '</' + list + '>'; list = null; } };
+  for(const ln of text.split('\n')){
+    if(!ln.trim()){ flush(); close(); continue; }
+    if((m = ln.match(/^(#{1,4})\s+(.*)/))){
+      flush(); close();
+      const n = Math.min(m[1].length + 2, 5);
+      out += `<h${n}>${inline(m[2])}</h${n}>`; continue;
+    }
+    if((m = ln.match(/^\s*[-*]\s+(.*)/))){
+      flush(); if(list !== 'ul'){ close(); out += '<ul>'; list = 'ul'; }
+      out += '<li>' + inline(m[1]) + '</li>'; continue;
+    }
+    if((m = ln.match(/^\s*\d+[.)]\s+(.*)/))){
+      flush(); if(list !== 'ol'){ close(); out += '<ol>'; list = 'ol'; }
+      out += '<li>' + inline(m[1]) + '</li>'; continue;
+    }
+    close(); para.push(ln.trim());
+  }
+  flush(); close();
+  return out;
+}
+
+function render(md){
+  return md.split(/(```[\s\S]*?(?:```|$))/g).map(part => {
+    if(part.startsWith('```')){
+      const m = part.match(/^```([^\n`]*)\n?([\s\S]*?)(?:\n?```)?$/);
+      const lang = esc((m[1] || '').trim() || 'код');
+      return `<div class="code"><div class="code-head"><span>${lang}</span>` +
+             `<button data-copy>Копировать</button></div><pre><code>${esc(m[2])}</code></pre></div>`;
+    }
+    return textBlock(part);
+  }).join('');
+}
+
+/* ---------- сообщения ---------- */
+const nearBottom = () => chat.scrollHeight - chat.scrollTop - chat.clientHeight < 120;
+const toBottom = () => { chat.scrollTop = chat.scrollHeight; };
+
+function addMsg(role, text){
+  const root = document.createElement('div');
+  root.className = 'msg ' + role;
+  const body = document.createElement('div');
+  body.className = 'body';
+  if(role === 'assistant'){
+    const av = document.createElement('img');
+    av.src = '/avatar.png'; av.alt = '';
+    root.append(av);
+    body.innerHTML = render(text);
+  } else {
+    body.textContent = text;
+  }
+  root.append(body);
+  wrap.append(root);
+  toBottom();
+  return {root, body};
+}
+
+const STARTERS = [
+  'Напиши Telegram-бота на Python, который напоминает о задачах',
+  'Сделай калькулятор на HTML, CSS и JavaScript в одном файле',
+  'Найди ошибку в моём коде и объясни, что не так',
+];
+
+function showEmpty(){
+  wrap.innerHTML = `<div class="empty" id="empty">
+    <img src="/avatar.png" alt="">
+    <h2>Что будем писать?</h2>
+    <p>Работает на вашем компьютере: без интернета и без лимитов на запросы.</p>
+    <div class="starters"></div></div>`;
+  const box = wrap.querySelector('.starters');
+  for(const s of STARTERS){
+    const b = document.createElement('button');
+    b.textContent = s;
+    b.onclick = () => send(s);
+    box.append(b);
+  }
+}
+
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify({messages, model:modelSel.value, web:web.checked})); }catch{}
+}
+
+function load(){
+  try{
+    const d = JSON.parse(localStorage.getItem(KEY) || '{}');
+    messages = Array.isArray(d.messages) ? d.messages : [];
+    savedModel = d.model || '';
+    web.checked = !!d.web;
+  }catch{}
+  wrap.innerHTML = '';
+  if(!messages.length) showEmpty();
+  for(const m of messages) addMsg(m.role, m.content);
+}
+
+/* ---------- статус: сеть и модели ---------- */
+async function refresh(){
+  try{ status = await (await fetch('/api/status')).json(); }
+  catch{ status = {online:false, ollama:false, models:[], default:''}; }
+
+  dot.classList.toggle('off', !status.online);
+  stText.textContent = status.online ? 'Онлайн' : 'Офлайн';
+  stBox.title = status.online
+    ? 'Интернет есть: можно включить поиск в сети'
+    : 'Интернета нет: DevAI работает локально, поиск в сети недоступен';
+  web.disabled = !status.online;
+  webLabel.classList.toggle('dis', !status.online);
+
+  const sig = JSON.stringify(status.models);
+  if(modelSel.dataset.sig !== sig){
+    const prev = modelSel.value || savedModel;
+    modelSel.innerHTML = '';
+    for(const name of (status.models.length ? status.models : ['нет моделей'])){
+      const o = document.createElement('option'); o.value = o.textContent = name; modelSel.append(o);
+    }
+    const want = [prev, status.default].find(n => n && status.models.includes(n));
+    modelSel.value = want || status.models[0] || 'нет моделей';
+    modelSel.dataset.sig = sig;
+  }
+
+  if(!status.ollama){
+    banner.innerHTML = 'Ollama не запущена. Установите её с <b>ollama.com</b>, запустите и обновите страницу.';
+  } else if(!status.models.length){
+    banner.innerHTML = 'Нет скачанных моделей. Выполните в терминале: <code>ollama pull ' + esc(status.default || 'qwen2.5-coder:7b') + '</code>';
+  } else {
+    banner.textContent = '';
+  }
+}
+
+/* ---------- отправка ---------- */
+function setBusy(v){
+  busy = v;
+  go.textContent = v ? 'Остановить' : 'Отправить';
+  go.disabled = !v && !input.value.trim();
+}
+
+function explain(o){
+  if(o.error === 'ollama_down') return 'Не удалось связаться с Ollama. Установите её с ollama.com и запустите.';
+  if(o.error === 'model_missing') return `Модель «${o.model}» не скачана. Выполните в терминале: ollama pull ${o.model}`;
+  return 'Ошибка модели: ' + (o.detail || 'неизвестная ошибка');
+}
+
+async function send(text){
+  text = (text || '').trim();
+  if(!text || busy) return;
+  if(wrap.querySelector('#empty')) wrap.innerHTML = '';
+  input.value = ''; autosize();
+
+  messages.push({role:'user', content:text});
+  const userEl = addMsg('user', text);
+  const asEl = addMsg('assistant', '');
+  const notes = document.createElement('div');
+  const out = document.createElement('div');
+  asEl.body.append(notes, out);
+
+  let acc = '', failed = false;
+  ctrl = new AbortController();
+  setBusy(true);
+
+  const note = (html, err) => {
+    const d = document.createElement('div');
+    d.className = 'note' + (err ? ' err' : '');
+    d.innerHTML = html; notes.append(d);
+  };
+
+  try{
+    const r = await fetch('/api/chat', {
+      method:'POST', headers:{'Content-Type':'application/json'}, signal:ctrl.signal,
+      body: JSON.stringify({model: modelSel.value, messages, web: web.checked && status.online}),
+    });
+    const reader = r.body.getReader(), dec = new TextDecoder();
+    let buf = '';
+    while(true){
+      const {done, value} = await reader.read();
+      if(done) break;
+      buf += dec.decode(value, {stream:true});
+      let i;
+      while((i = buf.indexOf('\n')) >= 0){
+        const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+        if(!line) continue;
+        const o = JSON.parse(line), stick = nearBottom();
+        if(o.error){ failed = true; note(esc(explain(o)), true); }
+        else if(o.devai === 'offline') note('Интернета нет, отвечаю без поиска.');
+        else if(o.devai === 'search_failed') note('Поиск не сработал, отвечаю без него.');
+        else if(o.devai === 'sources'){
+          const d = document.createElement('details'); d.className = 'src';
+          d.innerHTML = `<summary>Источники из интернета (${o.results.length})</summary><ol>` +
+            o.results.map(s => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a></li>`).join('') + '</ol>';
+          notes.append(d);
+        }
+        else if(o.message && o.message.content){
+          acc += o.message.content;
+          out.innerHTML = render(acc);
+        }
+        if(stick) toBottom();
+      }
+    }
+  }catch(e){
+    if(e.name !== 'AbortError'){ failed = true; note('Связь с DevAI потеряна. Проверьте, что devai.py запущен.', true); }
+  }finally{
+    ctrl = null;
+    if(acc){
+      messages.push({role:'assistant', content:acc});
+    } else if(failed){
+      // ответа нет: убираем пару сообщений и возвращаем текст в поле ввода
+      messages.pop();
+      if(!input.value) input.value = text;
+      autosize();
+    } else {
+      messages.pop(); userEl.root.remove(); asEl.root.remove();
+      if(!messages.length) showEmpty();
+    }
+    setBusy(false);
+    save();
+  }
+}
+
+/* ---------- ввод ---------- */
+function autosize(){
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 200) + 'px';
+  if(!busy) go.disabled = !input.value.trim();
+}
+input.addEventListener('input', autosize);
+input.addEventListener('keydown', e => {
+  if(e.key === 'Enter' && !e.shiftKey && matchMedia('(pointer:fine)').matches && !e.isComposing){
+    e.preventDefault(); send(input.value);
+  }
+});
+go.addEventListener('click', () => busy ? ctrl && ctrl.abort() : send(input.value));
+$('#newChat').addEventListener('click', () => {
+  if(ctrl) ctrl.abort();
+  messages = []; showEmpty(); save();
+});
+if(window.DevAIApp){ const sb = $('#server'); sb.hidden = false; sb.onclick = () => window.DevAIApp.reset(); }
+web.addEventListener('change', save);
+modelSel.addEventListener('change', save);
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-copy]');
+  if(!b) return;
+  const text = b.closest('.code').querySelector('code').textContent;
+  const done = () => { b.textContent = 'Скопировано'; setTimeout(() => b.textContent = 'Копировать', 1500); };
+  if(navigator.clipboard) navigator.clipboard.writeText(text).then(done, () => {});
+  else { const t = document.createElement('textarea'); t.value = text; document.body.append(t); t.select(); document.execCommand('copy'); t.remove(); done(); }
+});
+
+load(); setBusy(false); autosize();
+refresh(); setInterval(refresh, 10000);
+</script>
+</body>
+</html>
