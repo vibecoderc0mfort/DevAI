@@ -3,54 +3,115 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#03040a" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#e8ecf5" media="(prefers-color-scheme: light)">
 <title>DevAI</title>
 <link rel="icon" href="avatar.png">
 <style>
 :root{
-  --bg:#fff; --ink:#000; --mute:#666; --line:#d8d8d8; --panel:#f2f2f2;
-  --inv-bg:#000; --inv-ink:#fff; --err:#b00020;
+  color-scheme:light dark;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --bg:#e8ecf5; --ink:#07080c; --mute:#4b5262; --line:rgba(10,20,50,.12);
+  --glass:rgba(255,255,255,.58); --glass2:rgba(255,255,255,.26);
+  --edge:rgba(255,255,255,.9); --edge2:rgba(255,255,255,.45);
+  --hi:rgba(255,255,255,.75); --panel:rgba(255,255,255,.42);
+  --shadow:0 10px 32px rgba(30,45,90,.16);
+  --inv-bg:rgba(8,10,16,.9); --inv-ink:#fff; --err:#b00020;
+  --b1:rgba(90,120,255,.50); --b2:rgba(70,200,240,.46); --b3:rgba(180,130,255,.42);
   --sans:"SF Pro Display","Segoe UI Variable Display","Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
   --mono:ui-monospace,"SF Mono","Cascadia Code",Consolas,Menlo,monospace;
 }
 @media (prefers-color-scheme:dark){
-  :root{--bg:#000; --ink:#fff; --mute:#9b9b9b; --line:#2c2c2c; --panel:#151515;
-        --inv-bg:#fff; --inv-ink:#000; --err:#ff6b6b}
-  .logo{box-shadow:0 0 0 1px var(--line)}
+  :root{
+    --bg:#03040a; --ink:#f5f7ff; --mute:#a3a9bb; --line:rgba(255,255,255,.12);
+    --glass:rgba(255,255,255,.085); --glass2:rgba(255,255,255,.035);
+    --edge:rgba(255,255,255,.26); --edge2:rgba(255,255,255,.09);
+    --hi:rgba(255,255,255,.2); --panel:rgba(255,255,255,.06);
+    --shadow:0 12px 36px rgba(0,0,0,.55);
+    --inv-bg:rgba(255,255,255,.92); --inv-ink:#05060a; --err:#ff7b7b;
+    --b1:rgba(60,90,255,.40); --b2:rgba(20,160,200,.28); --b3:rgba(130,80,240,.34);
+  }
 }
 *{box-sizing:border-box}
-html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans);display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
-button,select,textarea{font:inherit}
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button,select,textarea,input{font:inherit}
+[hidden]{display:none!important}
 button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+button,select,.box,.starters button,.code-head button{transition:transform .28s var(--ease),background-color .25s,border-color .25s,box-shadow .25s,opacity .25s}
+button:active:not(:disabled){transform:scale(.96)}
 
-header{flex:none;display:flex;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;border-bottom:1px solid var(--line)}
-.logo{width:32px;height:32px;border-radius:22%;display:block;flex:none}
-h1{margin:0;font-size:20px;font-weight:760;letter-spacing:-.03em}
+/* живой фон: медленно плывущие пятна света, их и размывает стекло */
+.aurora{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:var(--bg)}
+.aurora i{position:absolute;width:75vmax;height:75vmax;border-radius:50%;will-change:transform}
+.aurora i:nth-child(1){left:-22vmax;top:-26vmax;background:radial-gradient(circle,var(--b1),transparent 62%);animation:drift1 40s ease-in-out infinite alternate}
+.aurora i:nth-child(2){right:-28vmax;top:18vmax;background:radial-gradient(circle,var(--b2),transparent 62%);animation:drift2 46s ease-in-out infinite alternate}
+.aurora i:nth-child(3){left:-8vmax;bottom:-34vmax;background:radial-gradient(circle,var(--b3),transparent 62%);animation:drift3 52s ease-in-out infinite alternate}
+@keyframes drift1{to{transform:translate3d(34vmax,22vmax,0) scale(1.15)}}
+@keyframes drift2{to{transform:translate3d(-30vmax,-18vmax,0) scale(.92)}}
+@keyframes drift3{to{transform:translate3d(26vmax,-26vmax,0) scale(1.2)}}
+
+/* жидкое стекло: размытие, блик в углу, светлая кромка и мягкая тень */
+.glass,.code,.note,.starters{
+  position:relative;overflow:hidden;
+  background:linear-gradient(145deg,var(--glass),var(--glass2));
+  -webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%);
+  border:1px solid var(--edge2);
+  box-shadow:var(--shadow),inset 0 1px 0 var(--edge),inset 0 -1px 0 var(--edge2),inset 1px 0 0 var(--edge2);
+}
+.glass::before,.code::before,.note::before,.starters::before{
+  content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(120% 90% at 0% 0%,var(--hi),transparent 46%);
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .glass,.code,.note,.starters{background:var(--bg)}
+}
+
+.top{position:absolute;top:0;left:0;right:0;z-index:5;pointer-events:none}
+.top>*{pointer-events:auto}
+.bar{width:calc(100% - 20px);max-width:780px;margin:8px auto 0}
+.top>.bar:first-child{margin-top:calc(8px + env(safe-area-inset-top))}
+header.bar{display:flex;align-items:center;gap:12px;padding:8px 14px;border-radius:24px}
+.logo{width:32px;height:32px;border-radius:22%;display:block;flex:none;box-shadow:0 2px 10px rgba(0,0,0,.3)}
+h1{margin:0;font-size:20px;font-weight:760;letter-spacing:-.03em;white-space:nowrap}
 .ver{color:var(--mute);font-size:13px;font-weight:500;letter-spacing:0;margin-left:6px}
 .status{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:14px;color:var(--mute)}
-.dot{width:10px;height:10px;border-radius:50%;border:2px solid var(--ink);background:var(--ink);flex:none}
+.dot{width:10px;height:10px;border-radius:50%;border:2px solid var(--ink);background:var(--ink);flex:none;transition:background-color .4s var(--ease)}
 .dot.off{background:transparent}
-select{font-size:14px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:6px 8px;max-width:170px}
+select{font-size:14px;color:var(--ink);background:var(--panel);border:1px solid var(--edge2);border-radius:12px;padding:6px 8px;max-width:170px}
+@media (max-width:440px){.ver,#stText{display:none}}
 
-#banner{flex:none;margin:0;padding:10px 16px;font-size:14px;background:var(--panel);border-bottom:1px solid var(--line)}
+#banner{margin-bottom:0;padding:10px 14px;font-size:14px;border-radius:18px}
 #banner:empty{display:none}
 #banner code{font-family:var(--mono);font-size:.92em}
+#keybox{padding:12px 14px;font-size:14px;border-radius:18px}
+#keybox p{margin:0 0 8px}
+.keyrow{display:flex;gap:8px}
+.keyrow input{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--edge2);border-radius:12px;background:var(--panel);color:var(--ink)}
+.keyrow button{border:0;border-radius:12px;background:var(--inv-bg);color:var(--inv-ink);padding:10px 14px;font-weight:600;cursor:pointer}
 
-#chat{flex:1;overflow-y:auto;padding:24px 16px}
+#chat{position:absolute;inset:0;z-index:1;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:96px 16px 150px}
 .wrap{max-width:760px;margin:0 auto}
 
-.empty{text-align:center;padding-top:6vh}
-.empty img{width:92px;height:92px;border-radius:22%}
-.empty h2{margin:24px 0 8px;font-size:36px;line-height:1.1;font-weight:760;letter-spacing:-.035em}
+.empty{text-align:center;padding-top:1vh}
+.empty img{width:84px;height:84px;border-radius:22%;box-shadow:0 16px 44px rgba(0,0,0,.35),0 0 0 1px var(--edge2)}
+.empty h2{margin:20px 0 8px;font-size:clamp(28px,8vw,36px);line-height:1.1;font-weight:760;letter-spacing:-.035em}
 .empty p{margin:0;color:var(--mute)}
-.starters{margin:28px auto 0;max-width:460px;text-align:left;border-top:1px solid var(--line)}
-.starters button{display:block;width:100%;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);padding:14px 4px;text-align:left;cursor:pointer}
+.starters{margin:28px auto 0;max-width:460px;text-align:left;border-radius:22px}
+.starters button{display:block;width:100%;border:0;background:none;color:var(--ink);padding:15px 18px;text-align:left;cursor:pointer;position:relative}
+.starters button+button{border-top:1px solid var(--line)}
 .starters button:hover{background:var(--panel)}
 
 .msg{display:flex;gap:12px;margin:0 0 22px}
+.msg.in{animation:rise .4s var(--ease) both}
+@keyframes rise{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
 .msg.user{justify-content:flex-end}
-.msg.user .body{background:var(--inv-bg);color:var(--inv-ink);padding:10px 16px;border-radius:22px 22px 6px 22px;max-width:85%;white-space:pre-wrap;overflow-wrap:anywhere}
-.msg.assistant img{width:28px;height:28px;border-radius:22%;flex:none;margin-top:2px}
+.msg.user .body{
+  background:var(--inv-bg);color:var(--inv-ink);padding:10px 16px;border-radius:22px 22px 6px 22px;
+  max-width:85%;white-space:pre-wrap;overflow-wrap:anywhere;
+  box-shadow:var(--shadow),inset 0 1px 0 rgba(255,255,255,.35);
+}
+.msg.assistant img{width:28px;height:28px;border-radius:22%;flex:none;margin-top:2px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .msg.assistant .body{flex:1;min-width:0;overflow-wrap:anywhere}
 .body p{margin:0 0 .8em}
 .body h3,.body h4,.body h5{margin:1.1em 0 .4em;line-height:1.25;letter-spacing:-.01em}
@@ -59,83 +120,91 @@ select{font-size:14px;color:var(--ink);background:var(--bg);border:1px solid var
 .body a{color:inherit}
 .body code{font-family:var(--mono);font-size:.9em;background:var(--panel);padding:.1em .35em;border-radius:6px}
 
-.code{border:1px solid var(--line);border-radius:12px;margin:.8em 0;overflow:hidden;background:var(--panel)}
-.code-head{display:flex;justify-content:space-between;align-items:center;padding:6px 8px 6px 14px;border-bottom:1px solid var(--line);font-size:13px;color:var(--mute)}
-.code-head button{color:var(--ink);background:none;border:1px solid var(--line);border-radius:8px;padding:2px 10px;font-size:13px;cursor:pointer}
-.code pre{margin:0;padding:14px;overflow-x:auto;font:13.5px/1.55 var(--mono);tab-size:4}
+.code{border-radius:16px;margin:.8em 0}
+.code-head{position:relative;display:flex;justify-content:space-between;align-items:center;padding:6px 8px 6px 14px;border-bottom:1px solid var(--line);font-size:13px;color:var(--mute)}
+.code-head button{color:var(--ink);background:var(--panel);border:1px solid var(--edge2);border-radius:10px;padding:2px 10px;font-size:13px;cursor:pointer}
+.code pre{position:relative;margin:0;padding:14px;overflow-x:auto;font:13.5px/1.55 var(--mono);tab-size:4}
 .code pre code{background:none;padding:0;font-size:inherit;border-radius:0}
 
-.note{border:1px solid var(--line);border-radius:12px;padding:10px 14px;color:var(--mute);font-size:14px;margin:0 0 .8em}
+.note{border-radius:14px;padding:10px 14px;color:var(--mute);font-size:14px;margin:0 0 .8em}
 .note.err{color:var(--err);border-color:var(--err)}
 .note code{font-family:var(--mono)}
 details.src{margin:0 0 .8em;font-size:14px;color:var(--mute)}
 details.src summary{cursor:pointer}
 details.src ol{margin:.4em 0 0;padding-left:1.4em}
 
-footer{flex:none;padding:10px 16px calc(12px + env(safe-area-inset-bottom));background:var(--bg)}
-.box{max-width:760px;margin:0 auto;border:1px solid var(--line);border-radius:22px;display:flex;align-items:flex-end;gap:8px;padding:8px 8px 8px 16px}
-.box:focus-within{border-color:var(--ink)}
+.bottom{position:absolute;left:0;right:0;bottom:0;z-index:5;padding:0 10px calc(10px + env(safe-area-inset-bottom));pointer-events:none}
+.slab{pointer-events:auto;max-width:780px;margin:0 auto;border-radius:30px;padding:8px}
+.box{position:relative;display:flex;align-items:flex-end;gap:8px;border-radius:24px;padding:6px 6px 6px 16px;background:var(--panel);border:1px solid var(--edge2)}
+.box:focus-within{border-color:var(--edge);box-shadow:0 0 0 3px var(--edge2)}
 textarea{flex:1;border:0;outline:0;resize:none;background:none;color:var(--ink);max-height:200px;padding:8px 0;line-height:1.45}
-#go{border:0;border-radius:16px;background:var(--inv-bg);color:var(--inv-ink);font-weight:600;padding:9px 16px;cursor:pointer;min-width:112px}
+textarea::placeholder{color:var(--mute)}
+#go{border:0;border-radius:18px;background:var(--inv-bg);color:var(--inv-ink);font-weight:600;padding:10px 16px;cursor:pointer;min-width:100px;box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 4px 14px rgba(0,0,0,.25)}
 #go:disabled{opacity:.35;cursor:default}
-.opts{max-width:760px;margin:8px auto 0;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:14px;color:var(--mute);padding:0 6px}
+.opts{position:relative;display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:14px;color:var(--mute);padding:8px 8px 2px}
 .opts label{display:flex;align-items:center;gap:6px;cursor:pointer}
 .opts label.dis{opacity:.5;cursor:default}
 .opts button{background:none;border:0;color:var(--mute);padding:0;cursor:pointer;text-decoration:underline}
 .opts input{accent-color:var(--ink)}
-[hidden]{display:none!important}
-#keybox{flex:none;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel);font-size:14px}
-#keybox p{margin:0 0 8px}
-.keyrow{display:flex;gap:8px;max-width:760px;margin:0 auto}
-.keyrow input{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink)}
-.keyrow button{border:0;border-radius:12px;background:var(--inv-bg);color:var(--inv-ink);padding:10px 14px;font-weight:600;cursor:pointer}
+.opts select{padding:4px 8px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
 </style>
 </head>
 <body>
 
-<header>
-  <img class="logo" src="avatar.png" alt="DevAI">
-  <h1>DevAI<span class="ver">0.1 alpha</span></h1>
-  <div class="status" id="status" title="">
-    <span class="dot off" id="dot"></span><span id="stText">Проверяю сеть</span>
-  </div>
-  <select id="model" aria-label="Модель"></select>
-</header>
+<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
 
-<p id="banner"></p>
+<div class="top" id="top">
+  <header class="glass bar">
+    <img class="logo" src="avatar.png" alt="DevAI">
+    <h1>DevAI<span class="ver">0.1 alpha</span></h1>
+    <div class="status" id="status" title="">
+      <span class="dot off" id="dot"></span><span id="stText">Проверяю сеть</span>
+    </div>
+    <select id="model" aria-label="Модель"></select>
+  </header>
 
-<div id="keybox" hidden>
-  <p>Облако использует бесплатные модели OpenRouter. Создайте бесплатный ключ на <b>openrouter.ai/keys</b> и вставьте его сюда. Ключ хранится только на этом устройстве.</p>
-  <div class="keyrow">
-    <input id="key" type="password" placeholder="sk-or-v1-..." autocomplete="off" autocapitalize="off" aria-label="Ключ OpenRouter">
-    <button id="keysave">Сохранить</button>
+  <p id="banner" class="glass bar"></p>
+
+  <div id="keybox" class="glass bar" hidden>
+    <p>Облако использует бесплатные модели OpenRouter. Создайте бесплатный ключ на <b>openrouter.ai/keys</b> и вставьте его сюда. Ключ хранится только на этом устройстве.</p>
+    <div class="keyrow">
+      <input id="key" type="password" placeholder="sk-or-v1-..." autocomplete="off" autocapitalize="off" aria-label="Ключ OpenRouter">
+      <button id="keysave">Сохранить</button>
+    </div>
   </div>
 </div>
 
 <main id="chat"><div class="wrap" id="wrap"></div></main>
 
-<footer>
-  <div class="box">
-    <textarea id="input" rows="1" placeholder="Опишите, что нужно написать или починить" aria-label="Сообщение"></textarea>
-    <button id="go">Отправить</button>
+<div class="bottom" id="bottom">
+  <div class="slab glass">
+    <div class="box">
+      <textarea id="input" rows="1" placeholder="Опишите задачу" aria-label="Сообщение"></textarea>
+      <button id="go">Отправить</button>
+    </div>
+    <div class="opts">
+      <label id="modeLabel">Режим
+        <select id="mode"><option value="local">Локально</option><option value="cloud">Облако</option></select>
+      </label>
+      <label id="webLabel"><input type="checkbox" id="web"> Искать в интернете</label>
+      <button id="newChat">Новый чат</button>
+      <button id="keyreset" hidden>Сменить ключ</button>
+    </div>
   </div>
-  <div class="opts">
-    <label id="modeLabel">Режим
-      <select id="mode"><option value="local">Локально (Ollama)</option><option value="cloud">Облако (бесплатно)</option></select>
-    </label>
-    <label id="webLabel"><input type="checkbox" id="web"> Искать в интернете</label>
-    <button id="newChat">Новый чат</button>
-    <button id="keyreset" hidden>Сменить ключ</button>
-  </div>
-</footer>
+</div>
 
 <script>
+
 const $ = s => document.querySelector(s);
 const chat = $('#chat'), wrap = $('#wrap'), input = $('#input'), go = $('#go'),
       web = $('#web'), webLabel = $('#webLabel'), modelSel = $('#model'),
       dot = $('#dot'), stText = $('#stText'), stBox = $('#status'), banner = $('#banner');
 
-let messages = [], ctrl = null, busy = false;
+let messages = [], ctrl = null, busy = false, chatId = 0, currentTyper = null;
 let status = {online:false, ollama:false, models:[], default:''};
 let savedModel = '';
 const KEY = 'devai.v1';
@@ -191,10 +260,15 @@ function render(md){
 /* ---------- сообщения ---------- */
 const nearBottom = () => chat.scrollHeight - chat.scrollTop - chat.clientHeight < 120;
 const toBottom = () => { chat.scrollTop = chat.scrollHeight; };
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const toBottomSmooth = () => {
+  if(chat.scrollTo) chat.scrollTo({top: chat.scrollHeight, behavior: REDUCED ? 'auto' : 'smooth'});
+  else toBottom();
+};
 
-function addMsg(role, text){
+function addMsg(role, text, animate){
   const root = document.createElement('div');
-  root.className = 'msg ' + role;
+  root.className = 'msg ' + role + (animate && !REDUCED ? ' in' : '');
   const body = document.createElement('div');
   body.className = 'body';
   if(role === 'assistant'){
@@ -207,7 +281,7 @@ function addMsg(role, text){
   }
   root.append(body);
   wrap.append(root);
-  toBottom();
+  if(animate) toBottomSmooth(); else toBottom();
   return {root, body};
 }
 
@@ -453,11 +527,14 @@ async function send(text){
   input.value = ''; autosize();
 
   messages.push({role:'user', content:text});
-  const userEl = addMsg('user', text);
-  const asEl = addMsg('assistant', '');
+  const sid = chatId;
+  const userEl = addMsg('user', text, true);
+  const asEl = addMsg('assistant', '', true);
   const notes = document.createElement('div');
   const out = document.createElement('div');
   asEl.body.append(notes, out);
+  const typer = makeTyper(out);
+  currentTyper = typer;
 
   let acc = '', failed = false;
   ctrl = new AbortController();
@@ -482,7 +559,7 @@ async function send(text){
     }
     else if(o.message && o.message.content){
       acc += o.message.content;
-      out.innerHTML = render(acc);
+      typer.push(o.message.content);
     }
     if(stick) toBottom();
   };
@@ -492,8 +569,11 @@ async function send(text){
     else await streamLocal(modelSel.value, messages, web.checked && status.online, ctrl.signal, onEvent);
   }catch(e){
     if(e.name !== 'AbortError'){ failed = true; note('Связь с DevAI потеряна. Проверьте, что devai.py запущен.', true); }
+    else typer.flush();
   }finally{
-    ctrl = null;
+    await typer.finish();
+    ctrl = null; currentTyper = null;
+    if(sid !== chatId){ setBusy(false); return; }   // чат сбросили, пока шёл ответ
     if(acc){
       messages.push({role:'assistant', content:acc});
     } else if(failed){
@@ -509,6 +589,38 @@ async function send(text){
   }
 }
 
+/* ---------- плавная печать: ответ приходит кусками, а показывается ровным потоком ---------- */
+function makeTyper(el){
+  let shown = 0, full = '', raf = 0, done = null;
+  const paint = () => {
+    const stick = nearBottom();
+    el.innerHTML = render(full.slice(0, shown));
+    if(stick) toBottom();
+  };
+  const step = () => {
+    raf = 0;
+    const left = full.length - shown;
+    if(left > 0){
+      shown += REDUCED ? left : Math.max(2, Math.ceil(left / 14));
+      const c = full.charCodeAt(shown - 1);
+      if(c >= 0xD800 && c <= 0xDBFF) shown++;       // не режем эмодзи пополам
+      shown = Math.min(shown, full.length);
+      paint();
+    }
+    if(shown < full.length) raf = requestAnimationFrame(step);
+    else if(done){ const d = done; done = null; d(); }
+  };
+  return {
+    push(t){ full += t; if(!raf) raf = requestAnimationFrame(step); },
+    finish(){ return new Promise(res => { if(shown >= full.length) return res(); done = res; if(!raf) raf = requestAnimationFrame(step); }); },
+    flush(){
+      if(raf){ cancelAnimationFrame(raf); raf = 0; }
+      shown = full.length; paint();
+      if(done){ const d = done; done = null; d(); }
+    },
+  };
+}
+
 /* ---------- ввод ---------- */
 function autosize(){
   input.style.height = 'auto';
@@ -521,10 +633,15 @@ input.addEventListener('keydown', e => {
     e.preventDefault(); send(input.value);
   }
 });
-go.addEventListener('click', () => busy ? ctrl && ctrl.abort() : send(input.value));
+go.addEventListener('click', () => {
+  if(!busy) return send(input.value);
+  if(ctrl) ctrl.abort();
+  if(currentTyper) currentTyper.flush();
+});
 $('#newChat').addEventListener('click', () => {
   if(ctrl) ctrl.abort();
-  messages = []; showEmpty(); save();
+  if(currentTyper) currentTyper.flush();
+  chatId++; messages = []; showEmpty(); save();
 });
 web.addEventListener('change', save);
 modelSel.addEventListener('change', save);
@@ -557,7 +674,15 @@ document.addEventListener('click', e => {
   else { const t = document.createElement('textarea'); t.value = text; document.body.append(t); t.select(); document.execCommand('copy'); t.remove(); done(); }
 });
 
-load(); applyMode(); setBusy(false); autosize();
+const topEl = $('#top'), botEl = $('#bottom');
+function layout(){
+  chat.style.paddingTop = (topEl.offsetHeight + 16) + 'px';
+  chat.style.paddingBottom = (botEl.offsetHeight + 16) + 'px';
+}
+if(window.ResizeObserver){ const ro = new ResizeObserver(layout); ro.observe(topEl); ro.observe(botEl); }
+addEventListener('resize', layout);
+
+load(); applyMode(); setBusy(false); autosize(); layout();
 refresh(); setInterval(refresh, 10000);
 </script>
 </body>

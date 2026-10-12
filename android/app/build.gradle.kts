@@ -2,6 +2,10 @@ plugins {
     id("com.android.application")
 }
 
+// Номер сборки приходит из GitHub Actions (-PbuildNumber=...), он растёт с каждым запуском.
+// Android ставит обновление поверх только если versionCode больше, а подпись та же.
+val buildNumber = (project.findProperty("buildNumber") as String?)?.toIntOrNull() ?: 1
+
 android {
     namespace = "app.devai"
     compileSdk = 34
@@ -10,8 +14,25 @@ android {
         applicationId = "app.devai"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1-alpha"
+        versionCode = buildNumber
+        versionName = "0.1-alpha.$buildNumber"
+    }
+
+    // Постоянный ключ подписи: благодаря ему каждая новая сборка ставится поверх старой.
+    signingConfigs {
+        create("devai") {
+            storeFile = file("devai.keystore")
+            storeType = "pkcs12"
+            storePassword = "devai-sign"
+            keyAlias = "devai"
+            keyPassword = "devai-sign"
+        }
+    }
+
+    buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("devai")
+        }
     }
 
     compileOptions {
