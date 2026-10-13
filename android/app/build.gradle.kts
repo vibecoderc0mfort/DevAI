@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         applicationId = "app.devai"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 34
         versionCode = buildNumber
         versionName = "0.1-alpha.$buildNumber"
@@ -32,6 +32,14 @@ android {
     buildTypes {
         getByName("debug") {
             signingConfig = signingConfigs.getByName("devai")
+        }
+    }
+
+    // Движок модели лежит в jniLibs под видом библиотеки. Чтобы Android мог его запустить,
+    // файлы должны быть распакованы на диск, а не читаться прямо из apk.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
         }
     }
 

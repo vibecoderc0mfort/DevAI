@@ -148,6 +148,19 @@ textarea::placeholder{color:var(--mute)}
 .opts input{accent-color:var(--ink)}
 .opts select{padding:4px 8px}
 
+#devbox{padding:12px 14px;font-size:14px;border-radius:18px;max-height:min(52vh,430px);overflow-y:auto}
+#devbox p{margin:0 0 8px}
+#devbox .errtxt{color:var(--err);white-space:pre-wrap}
+#devbox .mutetxt{color:var(--mute)}
+.mrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.mrow small{display:block;color:var(--mute)}
+.mrow button,.devrow button{border:1px solid var(--edge2);background:var(--panel);color:var(--ink);border-radius:12px;padding:7px 12px;cursor:pointer;white-space:nowrap}
+.mrow button.pri{background:var(--inv-bg);color:var(--inv-ink);border:0;font-weight:600}
+.devrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.prog{position:relative;height:8px;border-radius:99px;background:var(--panel);overflow:hidden;margin:6px 0}
+.prog>i{display:block;height:100%;width:0;background:var(--ink);border-radius:inherit;transition:width .6s var(--ease)}
+.prog.ind>i{width:35%;animation:slide 1.5s var(--ease) infinite}
+@keyframes slide{from{transform:translateX(-100%)}to{transform:translateX(290%)}}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
 }
@@ -176,6 +189,8 @@ textarea::placeholder{color:var(--mute)}
       <button id="keysave">Сохранить</button>
     </div>
   </div>
+
+  <div id="devbox" class="glass bar" hidden></div>
 </div>
 
 <main id="chat"><div class="wrap" id="wrap"></div></main>
@@ -192,6 +207,7 @@ textarea::placeholder{color:var(--mute)}
       </label>
       <label id="webLabel"><input type="checkbox" id="web"> Искать в интернете</label>
       <button id="newChat">Новый чат</button>
+      <button id="devtoggle" hidden>Модели</button>
       <button id="keyreset" hidden>Сменить ключ</button>
     </div>
   </div>
@@ -318,11 +334,14 @@ const SYSTEM = 'Ты DevAI — ИИ-помощник для разработки
 
 const modeSel = $('#mode'), modeLabel = $('#modeLabel'), keybox = $('#keybox'),
       keyIn = $('#key'), keyBtn = $('#keysave'), keyReset = $('#keyreset');
-let mode = STANDALONE ? 'cloud' : 'local';
-let prefs = {local:'', cloud:''};           // выбранная модель для каждого режима
+const HAS_BRIDGE = !!window.DevAI;     // внутри приложения Android есть мост к встроенной модели
+const MODES = [].concat(HAS_BRIDGE ? [['device', 'На телефоне']] : [], STANDALONE ? [] : [['local', 'Локально']], [['cloud', 'Облако']]);
+let mode = MODES[0][0];
+let prefs = {local:'', cloud:'', device:''};           // выбранная модель для каждого режима
 let apiKey = '', freeModels = [], freeState = 'idle';   // idle | loading | ok | fail
 
 function emptyNote(){
+  if(mode === 'device') return 'Работает на этом телефоне: без интернета, без ключей и без лимитов.';
   return mode === 'cloud'
     ? 'Бесплатные облачные модели: нужны интернет и бесплатный ключ OpenRouter.'
     : 'Работает на вашем компьютере: без интернета и без лимитов на запросы.';
@@ -330,7 +349,7 @@ function emptyNote(){
 
 function save(){
   prefs[mode] = modelSel.value || prefs[mode];
-  try{ localStorage.setItem(KEY, JSON.stringify({messages, mode, prefs, web:web.checked})); }catch(e){}
+  try{ localStorage.setItem(KEY, JSON.stringify({ver:2, messages, mode, prefs, web:web.checked})); }catch(e){}
 }
 
 function load(){
@@ -338,7 +357,7 @@ function load(){
     const d = JSON.parse(localStorage.getItem(KEY) || '{}');
     messages = Array.isArray(d.messages) ? d.messages : [];
     if(d.prefs) prefs = Object.assign(prefs, d.prefs);
-    if(d.mode && !STANDALONE) mode = d.mode;
+    if(d.mode && MODES.some(m => m[0] === d.mode) && (d.ver === 2 || !HAS_BRIDGE)) mode = d.mode;
     web.checked = !!d.web;
     apiKey = localStorage.getItem('devai.key') || '';
   }catch(e){}
@@ -394,6 +413,15 @@ async function loadFree(){
 
 /* ---------- статус ---------- */
 function paintStatus(){
+  if(mode === 'device'){
+    const names = {ready:'Готово', starting:'Запуск', downloading:'Загрузка', importing:'Копирование', error:'Ошибка',
+                   idle: dev.models.length ? 'Выберите модель' : 'Нет модели'};
+    dot.classList.toggle('off', dev.state !== 'ready');
+    stText.textContent = names[dev.state] || '';
+    stBox.title = 'Модель работает на этом телефоне, интернет не нужен';
+    web.disabled = true;
+    return;
+  }
   dot.classList.toggle('off', !status.online);
   stText.textContent = status.online ? 'Онлайн' : 'Офлайн';
   stBox.title = status.online ? 'Интернет есть' : 'Интернета нет: работают только локальные модели';
@@ -402,6 +430,7 @@ function paintStatus(){
 }
 
 function paintBanner(){
+  if(mode === 'device'){ banner.textContent = ''; return; }
   if(mode === 'cloud'){
     if(!status.online) banner.textContent = 'Нет интернета: облачные модели недоступны.' + (STANDALONE ? '' : ' Переключитесь на «Локально».');
     else if(freeState === 'fail') banner.textContent = 'Не удалось загрузить список бесплатных моделей OpenRouter.';
@@ -419,13 +448,17 @@ function paintBanner(){
 
 function applyMode(){
   modeSel.value = mode;
-  modeLabel.hidden = STANDALONE;
-  webLabel.hidden = mode === 'cloud';
+  modeLabel.hidden = MODES.length < 2;
+  webLabel.hidden = mode !== 'local';
   keybox.hidden = !(mode === 'cloud' && !apiKey);
   keyReset.hidden = !(mode === 'cloud' && !!apiKey);
+  devToggle.hidden = mode !== 'device';
+  if(mode !== 'device') devbox.hidden = true;
   modelSel.dataset.sig = '';
-  if(mode === 'cloud') paintCloudModels(); else paintLocalModels();
-  paintBanner();
+  if(mode === 'cloud') paintCloudModels();
+  else if(mode === 'local') paintLocalModels();
+  else { readDev(); paintDevice(); }
+  paintStatus(); paintBanner();
   const p = wrap.querySelector('#empty p');
   if(p) p.textContent = emptyNote();
 }
@@ -438,7 +471,7 @@ async function refresh(){
     catch(e){ status = {online:false, ollama:false, models:[], default:''}; }
   }
   paintStatus();
-  if(mode === 'cloud') await loadFree(); else paintLocalModels();
+  if(mode === 'cloud') await loadFree(); else if(mode === 'local') paintLocalModels();
   paintBanner();
 }
 
@@ -456,6 +489,8 @@ function explain(o){
   if(o.error === 'cloud_limit') return 'Достигнут лимит бесплатных запросов OpenRouter. Подождите минуту или выберите другую модель.';
   if(o.error === 'cloud_offline') return 'Нет связи с OpenRouter. Проверьте интернет.';
   if(o.error === 'cloud_http') return `OpenRouter вернул ошибку ${o.status}: ${o.detail || 'без пояснения'}. Попробуйте другую модель.`;
+  if(o.error === 'device_down') return 'Модель на телефоне не отвечает. Откройте «Модели» и выберите её заново.';
+  if(o.error === 'device_http') return `Модель вернула ошибку ${o.status}: ${o.detail || 'без пояснения'}. Возможно, переполнился контекст: начните новый чат.`;
   return 'Ошибка модели: ' + (o.detail || 'неизвестная ошибка');
 }
 
@@ -478,22 +513,23 @@ async function streamLocal(model, msgs, useWeb, signal, onEvent){
   }
 }
 
-async function streamCloud(model, msgs, signal, onEvent){
+async function streamOA(url, key, model, msgs, signal, onEvent, kind){
   let r;
   try{
-    r = await fetch(OR + '/chat/completions', {
+    r = await fetch(url, {
       method:'POST', signal,
-      headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + apiKey},
+      headers:{'Content-Type':'application/json', 'Authorization':'Bearer ' + key},
       body: JSON.stringify({model, stream:true, messages:[{role:'system', content:SYSTEM}].concat(msgs)}),
     });
   }catch(e){
     if(e.name === 'AbortError') throw e;
-    return onEvent({error:'cloud_offline'});
+    return onEvent({error: kind === 'cloud' ? 'cloud_offline' : 'device_down'});
   }
   if(!r.ok){
     let d = '';
     try{ const j = await r.json(); d = (j.error && j.error.message) || ''; }catch(e){}
-    const code = (r.status === 401 || r.status === 403) ? 'cloud_key' : r.status === 429 ? 'cloud_limit' : 'cloud_http';
+    let code = 'device_http';
+    if(kind === 'cloud') code = (r.status === 401 || r.status === 403) ? 'cloud_key' : r.status === 429 ? 'cloud_limit' : 'cloud_http';
     return onEvent({error:code, status:r.status, detail:d});
   }
   const reader = r.body.getReader(), dec = new TextDecoder();
@@ -509,12 +545,16 @@ async function streamCloud(model, msgs, signal, onEvent){
       const data = line.slice(5).trim();
       if(data === '[DONE]') return;
       let j; try{ j = JSON.parse(data); }catch(e){ continue; }
-      if(j.error){ return onEvent({error:'cloud_http', status:j.error.code || '', detail:j.error.message || ''}); }
+      if(j.error){ return onEvent({error: kind + '_http', status:j.error.code || '', detail:j.error.message || ''}); }
       const t = j.choices && j.choices[0] && j.choices[0].delta && j.choices[0].delta.content;
       if(t) onEvent({message:{content:t}});
     }
   }
 }
+
+const streamCloud = (model, msgs, signal, onEvent) => streamOA(OR + '/chat/completions', apiKey, model, msgs, signal, onEvent, 'cloud');
+const streamDevice = (msgs, signal, onEvent) =>
+  streamOA('http://127.0.0.1:' + dev.port + '/v1/chat/completions', dev.key, 'local', trimHistory(msgs, DEV_HISTORY_CHARS), signal, onEvent, 'device');
 
 async function send(text){
   text = (text || '').trim();
@@ -522,6 +562,16 @@ async function send(text){
   if(mode === 'cloud' && !apiKey){
     if(!input.value) input.value = text;
     autosize(); keybox.hidden = false; keyIn.focus(); return;
+  }
+  if(mode === 'device'){
+    readDev();
+    if(dev.state !== 'ready'){
+      if(!input.value) input.value = text;
+      autosize();
+      if(dev.state === 'idle' || dev.state === 'error') devOpen = true;
+      devSig = ''; paintDevice();
+      return;
+    }
   }
   if(wrap.querySelector('#empty')) wrap.innerHTML = '';
   input.value = ''; autosize();
@@ -566,6 +616,7 @@ async function send(text){
 
   try{
     if(mode === 'cloud') await streamCloud(modelSel.value, messages, ctrl.signal, onEvent);
+    else if(mode === 'device') await streamDevice(messages, ctrl.signal, onEvent);
     else await streamLocal(modelSel.value, messages, web.checked && status.online, ctrl.signal, onEvent);
   }catch(e){
     if(e.name !== 'AbortError'){ failed = true; note('Связь с DevAI потеряна. Проверьте, что devai.py запущен.', true); }
@@ -586,6 +637,127 @@ async function send(text){
     }
     setBusy(false);
     save();
+  }
+}
+
+/* ---------- режим «На телефоне»: модель работает внутри приложения, интернет и ключи не нужны ---------- */
+const devbox = $('#devbox'), devToggle = $('#devtoggle');
+let dev = {state:'idle', message:'', models:[], catalog:[], ramMb:0, freeMb:0, done:0, total:-1, active:'', port:0, key:''};
+let devOpen = false, devSig = '', devPrev = 'idle';
+const DEV_HISTORY_CHARS = 14000;      // контекст у модели на телефоне ограничен, старые сообщения отбрасываем
+const fmtBytes = b => b >= 1073741824 ? (b / 1073741824).toFixed(1) + ' ГБ' : Math.max(1, Math.round(b / 1048576)) + ' МБ';
+const baseName = f => f.replace(/\.gguf$/i, '');
+const attr = s => esc(String(s)).replace(/"/g, '&quot;');
+
+function readDev(){
+  try{ dev = Object.assign(dev, JSON.parse(window.DevAI.status())); }catch(e){}
+}
+
+function recommended(){               // какую модель предложить, исходя из памяти телефона
+  const r = dev.ramMb || 0;
+  return r >= 5500 ? 'coder-3b' : r >= 3000 ? 'coder-1.5b' : 'coder-0.5b';
+}
+
+function devVisible(){
+  return devOpen || !dev.models.length || ['downloading', 'importing', 'starting', 'error'].indexOf(dev.state) >= 0;
+}
+
+function devHTML(){
+  if(dev.state === 'downloading' || dev.state === 'importing'){
+    return `<p><b>${dev.state === 'downloading' ? 'Скачиваю модель' : 'Копирую модель'}</b></p>
+      <div class="prog"><i id="devbar"></i></div><p class="mutetxt" id="devpct"></p>
+      <div class="devrow"><button data-act="cancel">Остановить</button></div>`;
+  }
+  let h = '';
+  if(dev.state === 'starting') h += '<p><b>Загружаю модель в память</b><br><span class="mutetxt">Это может занять до минуты.</span></p><div class="prog ind"><i></i></div>';
+  if(dev.state === 'error') h += `<p class="errtxt">${esc(dev.message)}</p>`;
+  else if(dev.message) h += `<p class="mutetxt">${esc(dev.message)}</p>`;
+  if(!dev.models.length){
+    h += '<p>Чтобы работать на телефоне, скачайте модель один раз (лучше по Wi-Fi). Потом интернет не понадобится.</p>';
+  } else {
+    h += '<p><b>Ваши модели</b></p>';
+    for(const m of dev.models){
+      const act = m.file === dev.active;
+      h += `<div class="mrow"><div>${esc(baseName(m.file))}<small>${fmtBytes(m.size)}${act ? ', сейчас используется' : ''}</small></div>` +
+        `<div class="devrow" style="margin:0">` +
+        (act ? '' : `<button class="pri" data-act="use" data-file="${attr(m.file)}">Выбрать</button>`) +
+        `<button data-act="rm" data-file="${attr(m.file)}">Удалить</button></div></div>`;
+    }
+  }
+  const have = new Set(dev.models.map(m => m.file));
+  const rest = dev.catalog.filter(c => !have.has(c.file));
+  if(rest.length){
+    h += '<p style="margin-top:10px"><b>Скачать модель</b></p>';
+    for(const c of rest){
+      h += `<div class="mrow"><div>${esc(c.name)}<small>${esc(c.size)}${c.id === recommended() ? ', подходит вашему телефону' : ''}</small></div>` +
+        `<button class="pri" data-act="dl" data-id="${attr(c.id)}">Скачать</button></div>`;
+    }
+  }
+  h += `<div class="devrow"><button data-act="import">Выбрать свой файл .gguf</button>${dev.models.length ? '<button data-act="close">Закрыть</button>' : ''}</div>`;
+  h += '<p class="mutetxt" style="margin:8px 0 0">Подойдёт любая модель в формате GGUF, например с huggingface.co.</p>';
+  return h;
+}
+
+function paintDeviceModels(){
+  const sig = 'D' + dev.active + JSON.stringify(dev.models);
+  if(modelSel.dataset.sig === sig) return;
+  fillModels(dev.models.map(m => ({id:m.file, label:baseName(m.file)})), dev.active || prefs.device);
+  modelSel.dataset.sig = sig;
+}
+
+function paintDevice(){
+  if(mode !== 'device') return;
+  if(dev.state === 'ready' && devPrev !== 'ready') devOpen = false;   // модель запустилась: прячем панель
+  devPrev = dev.state;
+  const show = devVisible();
+  devbox.hidden = !show;
+  const sig = [dev.state, dev.message, dev.active, JSON.stringify(dev.models), devOpen, dev.catalog.length, recommended()].join('|');
+  if(show && sig !== devSig){ devbox.innerHTML = devHTML(); devSig = sig; }
+  if(show && (dev.state === 'downloading' || dev.state === 'importing')){
+    const bar = $('#devbar'), pct = $('#devpct');
+    if(bar && pct){
+      const known = dev.total > 0;
+      bar.style.width = known ? Math.min(100, dev.done / dev.total * 100).toFixed(1) + '%' : '35%';
+      pct.textContent = known ? fmtBytes(dev.done) + ' из ' + fmtBytes(dev.total) : fmtBytes(dev.done);
+    }
+  }
+  paintDeviceModels();
+  paintStatus();
+}
+
+devbox.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if(!b || !window.DevAI) return;
+  const act = b.dataset.act;
+  if(act === 'dl') window.DevAI.download(b.dataset.id);
+  else if(act === 'use'){ window.DevAI.use(b.dataset.file); prefs.device = b.dataset.file; devOpen = false; save(); }
+  else if(act === 'rm'){
+    if(b.dataset.sure !== '1'){ b.dataset.sure = '1'; b.textContent = 'Точно удалить?'; return; }
+    window.DevAI.remove(b.dataset.file);
+  }
+  else if(act === 'import') window.DevAI.importModel();
+  else if(act === 'cancel') window.DevAI.cancel();
+  else if(act === 'close') devOpen = false;
+  readDev(); devSig = ''; paintDevice();
+});
+devToggle.addEventListener('click', () => { devOpen = !devOpen; devSig = ''; paintDevice(); });
+
+function trimHistory(msgs, max){
+  let total = 0;
+  const out = [];
+  for(let i = msgs.length - 1; i >= 0; i--){
+    total += msgs[i].content.length;
+    if(total > max && out.length) break;
+    out.unshift(msgs[i]);
+  }
+  while(out.length > 1 && out[0].role !== 'user') out.shift();
+  return out;
+}
+
+function buildModes(){
+  modeSel.innerHTML = '';
+  for(const m of MODES){
+    const o = document.createElement('option'); o.value = m[0]; o.textContent = m[1]; modeSel.append(o);
   }
 }
 
@@ -644,7 +816,10 @@ $('#newChat').addEventListener('click', () => {
   chatId++; messages = []; showEmpty(); save();
 });
 web.addEventListener('change', save);
-modelSel.addEventListener('change', save);
+modelSel.addEventListener('change', () => {
+  if(mode === 'device' && modelSel.value && window.DevAI && modelSel.value !== dev.active) window.DevAI.use(modelSel.value);
+  save();
+});
 
 modeSel.addEventListener('change', () => {
   prefs[mode] = modelSel.value;
@@ -682,8 +857,9 @@ function layout(){
 if(window.ResizeObserver){ const ro = new ResizeObserver(layout); ro.observe(topEl); ro.observe(botEl); }
 addEventListener('resize', layout);
 
-load(); applyMode(); setBusy(false); autosize(); layout();
+buildModes(); load(); applyMode(); setBusy(false); autosize(); layout();
 refresh(); setInterval(refresh, 10000);
+setInterval(() => { if(mode === 'device'){ readDev(); paintDevice(); } }, 800);
 </script>
 </body>
 </html>

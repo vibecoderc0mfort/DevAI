@@ -7,7 +7,8 @@
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="DevAI"
-        android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+        android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+        android:usesCleartextTraffic="true">
 
         <activity
             android:name=".MainActivity"
