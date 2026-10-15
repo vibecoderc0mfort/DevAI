@@ -162,7 +162,7 @@ details.src ol{margin:.4em 0 0;padding-left:1.4em}
 .bottom{position:absolute;left:0;right:0;bottom:0;z-index:5;padding:0 12px calc(8px + var(--sab));pointer-events:none}
 .slab{pointer-events:auto;max-width:780px;margin:0 auto;border-radius:30px;padding:8px 8px 8px 20px;display:flex;align-items:flex-end;gap:8px}
 .slab:focus-within{border-color:var(--edge)}
-textarea{flex:1;border:0;outline:0;resize:none;background:none;max-height:200px;padding:9px 0;line-height:1.45;font-size:16px}
+textarea{flex:1;min-width:0;border:0;outline:0;resize:none;background:none;max-height:200px;padding:9px 0 9px 4px;line-height:1.45;font-size:16px}
 textarea::placeholder{color:var(--mute)}
 #go{width:42px;height:42px;border-radius:50%;border:0;background:var(--ink);color:var(--bg);display:grid;place-items:center;flex:none;padding:0}
 #go svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
@@ -231,6 +231,28 @@ textarea::placeholder{color:var(--mute)}
 .intro .bottom .slab{animation:riseIn .75s var(--ease) .08s both}
 @keyframes dropIn{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:none}}
 @keyframes riseIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+/* вложения */
+.slab{display:block;padding:8px}
+.slab .row{display:flex;align-items:flex-end;gap:6px}
+.plus{width:42px;height:42px;border-radius:50%;border:1px solid var(--edge2);background:var(--panel);display:grid;place-items:center;flex:none;padding:0}
+.plus svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tray{position:relative;display:flex;gap:8px;overflow-x:auto;padding:2px 4px 8px}
+.att{position:relative;flex:none;display:flex;align-items:center;gap:8px;max-width:220px;height:54px;border-radius:15px;background:var(--panel);border:1px solid var(--edge2);padding:0 30px 0 6px;font-size:13px}
+.att img,.att .fi{width:42px;height:42px;border-radius:10px;object-fit:cover;flex:none}
+.att .fi{display:grid;place-items:center;background:var(--bubble)}
+.att .fi svg,.amenu svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.att span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.att button{position:absolute;top:3px;right:3px;width:24px;height:24px;border-radius:50%;border:0;background:none;color:var(--mute);padding:0;font-size:18px;line-height:1}
+.amenu{position:absolute;left:22px;bottom:100%;margin-bottom:8px;border-radius:20px;padding:6px;pointer-events:auto;min-width:180px;z-index:6}
+.amenu button{position:relative;display:flex;gap:12px;align-items:center;width:100%;border:0;background:none;padding:11px 12px;border-radius:14px;text-align:left}
+.amenu button:hover{background:var(--panel)}
+.msg.user{flex-direction:column;align-items:flex-end}
+.msg.user .files{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;margin-bottom:6px;max-width:88%}
+.msg.user .files img{width:120px;height:120px;border-radius:16px;object-fit:cover;border:1px solid var(--edge2)}
+.msg.user .fchip{background:var(--bubble);border:1px solid var(--edge2);border-radius:14px;padding:7px 12px;font-size:13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msg.user .vid{position:relative;display:block}
+.msg.user .vid::after{content:"";position:absolute;left:50%;top:50%;width:0;height:0;margin:-11px 0 0 -7px;border-left:18px solid #fff;border-top:11px solid transparent;border-bottom:11px solid transparent;filter:drop-shadow(0 1px 4px rgba(0,0,0,.6))}
+.toast{position:fixed;left:50%;bottom:calc(var(--sab) + 140px);transform:translateX(-50%);z-index:60;max-width:min(90vw,420px);padding:11px 16px;border-radius:16px;font-size:14px;text-align:center}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 @media (max-width:380px){.mchip{padding:0 10px}}
 </style>
@@ -272,12 +294,26 @@ textarea::placeholder{color:var(--mute)}
 <main id="chat"><div class="wrap" id="wrap"></div></main>
 
 <div class="bottom" id="bottom">
+  <div class="amenu glass" id="attachMenu" hidden>
+    <button data-pick="image"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg>Фото</button>
+    <button data-pick="video"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="3"/><path d="M16 10l5-3v10l-5-3z"/></svg>Видео</button>
+    <button data-pick="file"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg>Файл</button>
+  </div>
   <div class="slab glass">
-    <textarea id="input" rows="1" placeholder="Опишите задачу" aria-label="Сообщение"></textarea>
-    <button id="go" aria-label="Отправить"></button>
+    <div class="tray" id="tray" hidden></div>
+    <div class="row">
+      <button class="plus" id="attachBtn" aria-label="Прикрепить файл, фото или видео"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+      <textarea id="input" rows="1" placeholder="Опишите задачу" aria-label="Сообщение"></textarea>
+      <button id="go" aria-label="Отправить"></button>
+    </div>
   </div>
   <p class="hint" id="hint"></p>
 </div>
+
+<input type="file" id="inImage" accept="image/*" multiple hidden>
+<input type="file" id="inVideo" accept="video/*" hidden>
+<input type="file" id="inFile" multiple hidden>
+<div class="toast glass" id="toast" hidden></div>
 
 <div class="scrim" id="scrim"></div>
 
@@ -339,7 +375,9 @@ const chat = $('#chat'), wrap = $('#wrap'), input = $('#input'), go = $('#go'),
       keyIn = $('#key'), keyBtn = $('#keysave'), keyReset = $('#keyreset'), keyRow = $('#keyresetRow'),
       devbox = $('#devbox'), devToggle = $('#devtoggle'), hint = $('#hint'),
       drawer = $('#drawer'), scrim = $('#scrim'), sheet = $('#sheet'), chatList = $('#chatList'),
-      topEl = $('#top'), botEl = $('#bottom'), splash = $('#splash');
+      topEl = $('#top'), botEl = $('#bottom'), splash = $('#splash'),
+      tray = $('#tray'), attachBtn = $('#attachBtn'), attachMenu = $('#attachMenu'),
+      inImage = $('#inImage'), inVideo = $('#inVideo'), inFile = $('#inFile'), toastEl = $('#toast');
 
 const OR = 'https://openrouter.ai/api/v1';
 const STANDALONE = location.protocol === 'file:';      // внутри приложения Android сервера нет
@@ -357,6 +395,7 @@ const ICON_SEND = svg('<path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/>');
 const ICON_STOP = '<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2.5" fill="currentColor" stroke="none"/></svg>';
 const ICON_COPY = svg('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/>');
 const ICON_RETRY = svg('<path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/>');
+const ICON_FILE = svg('<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/>');
 const ICON_TRASH = svg('<path d="M5 7h14M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>');
 
 const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -443,6 +482,8 @@ let apiKey = '', freeModels = [], freeState = 'idle';      // idle | loading | o
 let status = {online:false, ollama:false, models:[], default:''};
 let messages = [], chats = [], currentId = '';
 let ctrl = null, busy = false, chatId = 0, currentTyper = null;
+let pending = [];                       // вложения, прикреплённые к ещё не отправленному сообщению
+const mediaOf = new WeakMap();          // тяжёлые данные (фото, кадры видео) живут только в памяти, в историю не пишутся
 
 const isSocket = f => /^socket-/i.test(f || '');
 const STARTERS = [
@@ -487,7 +528,12 @@ function save(){
   }
   chats = chats.filter(x => x.messages.length || x.id === currentId)
                .sort((a, b) => b.updated - a.updated).slice(0, 60);
-  try{ localStorage.setItem(CKEY, JSON.stringify({ver:3, chats, currentId, mode, prefs, web:web.checked})); }catch(e){}
+  const pack = lite => JSON.stringify({ver:3, chats: chats.map(c => Object.assign({}, c, {messages: c.messages.map((m, i, arr) => {
+    if(!m.files || (!lite && i >= arr.length - 4)) return m;
+    return Object.assign({}, m, {files: m.files.map(f => lite ? {name:f.name, kind:f.kind} : {name:f.name, kind:f.kind, thumb:f.thumb})});
+  })})), currentId, mode, prefs, web:web.checked});
+  try{ localStorage.setItem(CKEY, pack(false)); }
+  catch(e){ try{ localStorage.setItem(CKEY, pack(true)); }catch(e2){} }
 }
 
 function load(){
@@ -520,13 +566,29 @@ const toBottomSmooth = () => {
   else toBottom();
 };
 
-function addMsg(role, text, animate){
+function addMsg(role, text, animate, files){
   const root = document.createElement('div');
   root.className = 'msg ' + role + (animate && !reduced() ? ' in' : '');
   const body = document.createElement('div');
   body.className = 'body';
   if(role === 'assistant') body.innerHTML = render(text); else body.textContent = text;
-  root.append(body);
+  if(role === 'user' && files && files.length){
+    const box = document.createElement('div');
+    box.className = 'files';
+    for(const f of files){
+      if(f.thumb){
+        const im = document.createElement('img');
+        im.src = f.thumb; im.alt = f.name;
+        if(f.kind === 'video'){ const w = document.createElement('span'); w.className = 'vid'; w.append(im); box.append(w); }
+        else box.append(im);
+      } else {
+        const c = document.createElement('span');
+        c.className = 'fchip'; c.textContent = f.name; box.append(c);
+      }
+    }
+    root.append(box);
+  }
+  if(role !== 'user' || text) root.append(body);
   wrap.append(root);
   if(animate) toBottomSmooth(); else toBottom();
   return {root, body};
@@ -556,7 +618,7 @@ function showEmpty(){
 function renderChat(){
   wrap.innerHTML = '';
   if(!messages.length){ showEmpty(); return; }
-  for(const m of messages) addMsg(m.role, m.content);
+  for(const m of messages) addMsg(m.role, m.content, false, m.files);
   const last = messages[messages.length - 1];
   if(last.role === 'assistant'){
     const bodies = wrap.querySelectorAll('.msg.assistant .body');
@@ -568,8 +630,9 @@ function renderChat(){
 function regenerate(){
   const n = messages.length;
   if(busy || n < 2 || messages[n - 1].role !== 'assistant' || messages[n - 2].role !== 'user') return;
-  const text = messages[n - 2].content;
+  const um = messages[n - 2], text = um.content;
   messages.splice(n - 2, 2);
+  pending = (um.files || []).map((f, i) => Object.assign({id:uid()}, f, (mediaOf.get(um) || [])[i] || {}));
   const els = wrap.querySelectorAll('.msg');
   els[els.length - 1].remove(); els[els.length - 2].remove();
   send(text);
@@ -622,6 +685,7 @@ function openDrawer(){ renderChatList(); sheet.classList.remove('open'); drawer.
 function openSheet(){ paintSettings(); drawer.classList.remove('open'); sheet.classList.add('open'); scrim.classList.add('on'); }
 function closeAll(){ drawer.classList.remove('open'); sheet.classList.remove('open'); scrim.classList.remove('on'); }
 window.__back = () => {                                  // кнопка «назад» на телефоне
+  if(!attachMenu.hidden){ attachMenu.hidden = true; return true; }
   if(drawer.classList.contains('open') || sheet.classList.contains('open')){ closeAll(); return true; }
   if(!devbox.hidden && mode === 'device' && dev.models.length){ devOpen = false; devSig = ''; paintDevice(); return true; }
   return false;
@@ -673,7 +737,7 @@ function paintLocalModels(){
 function paintCloudModels(){
   const sig = 'C' + freeModels.length;
   if(modelSel.dataset.sig === sig) return;
-  fillModels(freeModels.map(m => ({id:m.id, label:m.name || m.id})), prefs.cloud);
+  fillModels(freeModels.map(m => ({id:m.id, label:(m.name || m.id) + (m.vision ? ' (фото)' : '')})), prefs.cloud);
   modelSel.dataset.sig = sig;
 }
 
@@ -688,7 +752,8 @@ async function loadFree(){
     freeModels = (j.data || []).filter(m =>
         m.pricing && Number(m.pricing.prompt) === 0 && Number(m.pricing.completion) === 0 &&
         (!m.architecture || !m.architecture.output_modalities || m.architecture.output_modalities.indexOf('text') >= 0))
-      .sort((a, b) => (isCode(b) - isCode(a)) || ((b.created || 0) - (a.created || 0)));
+      .sort((a, b) => (isCode(b) - isCode(a)) || ((b.created || 0) - (a.created || 0)))
+      .map(m => Object.assign({}, m, {vision: !!(m.architecture && (m.architecture.input_modalities || []).indexOf('image') >= 0)}));
     freeState = freeModels.length ? 'ok' : 'fail';
   }catch(e){ freeState = 'fail'; }
   if(mode === 'cloud') paintCloudModels();
@@ -842,6 +907,39 @@ function openModels(){
   devOpen = true; devSig = ''; closeAll(); paintDevice();
 }
 
+const FENCE = '```';
+const cloudVision = () => freeModels.some(m => m.id === modelSel.value && m.vision);
+const canSeeImages = () => mode === 'cloud' ? cloudVision() : mode === 'local';
+
+/* Собирает сообщения для модели: текстовые файлы вставляются в запрос, фото и кадры видео идут как картинки */
+function apiMessages(msgs, o){
+  let lastUser = null;
+  for(let i = msgs.length - 1; i >= 0; i--){ if(msgs[i].role === 'user'){ lastUser = msgs[i]; break; } }
+  return msgs.map(m => {
+    if(m.role !== 'user') return {role:m.role, content:m.content};
+    const files = m.files || [];
+    let text = m.content || (files.length ? 'Посмотри вложения.' : '');
+    for(const f of files){
+      if(f.kind === 'text') text += '\n\n[Файл: ' + f.name + (f.cut ? ', показано начало' : '') + ']\n' + FENCE + '\n' + (f.text || '') + '\n' + FENCE;
+    }
+    const media = mediaOf.get(m) || [];
+    const imgs = [];
+    if(o.images && m === lastUser){
+      files.forEach((f, i) => {
+        const md = media[i] || {};
+        if(f.kind === 'image' && md.dataUrl) imgs.push(md.dataUrl);
+        if(f.kind === 'video' && md.frames){
+          text += '\n\n[Видео ' + f.name + ': ' + md.frames.length + ' кадра(ов) по порядку времени]';
+          md.frames.forEach(u => imgs.push(u));
+        }
+      });
+    }
+    if(!imgs.length) return {role:'user', content:text};
+    if(o.ollama) return {role:'user', content:text, images: imgs.map(u => u.replace(/^data:[^,]+,/, ''))};
+    return {role:'user', content:[{type:'text', text}].concat(imgs.map(u => ({type:'image_url', image_url:{url:u}})))};
+  });
+}
+
 function trimHistory(msgs, max){
   let total = 0;
   const out = [];
@@ -969,7 +1067,7 @@ async function streamSocket(msgs, signal, onEvent){
 }
 
 const streamDevice = (msgs, signal, onEvent) => isSocket(dev.active) ? streamSocket(msgs, signal, onEvent) :
-  streamOA('http://127.0.0.1:' + dev.port + '/v1/chat/completions', dev.key, 'local', trimHistory(msgs, DEV_HISTORY_CHARS), signal, onEvent, 'device');
+  streamOA('http://127.0.0.1:' + dev.port + '/v1/chat/completions', dev.key, 'local', trimHistory(apiMessages(msgs, {images:false}), DEV_HISTORY_CHARS), signal, onEvent, 'device');
 
 /* ---------- плавная печать: ответ приходит кусками, а показывается ровным потоком ---------- */
 function makeTyper(el){
@@ -1008,12 +1106,12 @@ function setBusy(v){
   busy = v;
   go.innerHTML = v ? ICON_STOP : ICON_SEND;
   go.setAttribute('aria-label', v ? 'Остановить' : 'Отправить');
-  go.disabled = !v && !input.value.trim();
+  go.disabled = !v && !input.value.trim() && !pending.length;
 }
 
 async function send(text){
   text = (text || '').trim();
-  if(!text || busy) return;
+  if((!text && !pending.length) || busy) return;
   if(mode === 'cloud' && !apiKey){
     if(!input.value) input.value = text;
     autosize(); keybox.hidden = false; keyIn.focus(); return;
@@ -1029,11 +1127,18 @@ async function send(text){
     }
   }
   if(wrap.querySelector('#empty')) wrap.innerHTML = '';
+  const files = pending.splice(0);
+  paintTray();
   input.value = ''; autosize();
 
   const sid = chatId;
-  messages.push({role:'user', content:text});
-  const userEl = addMsg('user', text, true);
+  const um = {role:'user', content:text};
+  if(files.length){
+    um.files = files.map(a => ({name:a.name, kind:a.kind, thumb:a.thumb, text:a.text, cut:a.cut}));
+    mediaOf.set(um, files.map(a => ({dataUrl:a.dataUrl, frames:a.frames})));
+  }
+  messages.push(um);
+  const userEl = addMsg('user', text, true, um.files);
   const asEl = addMsg('assistant', '', true);
   wrap.querySelectorAll('.actions').forEach(a => a.remove());
   const notes = document.createElement('div');
@@ -1052,6 +1157,11 @@ async function send(text){
     d.className = 'note' + (err ? ' err' : '');
     d.innerHTML = html; notes.append(d);
   };
+
+  if(files.length){
+    if(mode === 'device' && isSocket(dev.active)) note('Socket 1.0 не умеет работать с вложениями: она увидит только текст запроса.');
+    else if(files.some(a => a.kind === 'image' || a.kind === 'video') && !canSeeImages()) note('Эта модель не видит фото и видео: она получит только текст запроса и текстовые файлы.');
+  }
 
   const onEvent = o => {
     const stick = nearBottom();
@@ -1073,9 +1183,9 @@ async function send(text){
   };
 
   try{
-    if(mode === 'cloud') await streamCloud(modelSel.value, messages, ctrl.signal, onEvent);
+    if(mode === 'cloud') await streamCloud(modelSel.value, apiMessages(messages, {images:cloudVision()}), ctrl.signal, onEvent);
     else if(mode === 'device') await streamDevice(messages, ctrl.signal, onEvent);
-    else await streamLocal(modelSel.value, messages, web.checked && status.online, ctrl.signal, onEvent);
+    else await streamLocal(modelSel.value, apiMessages(messages, {images:true, ollama:true}), web.checked && status.online, ctrl.signal, onEvent);
   }catch(e){
     if(e.name !== 'AbortError'){ failed = true; note('Связь с DevAI потеряна. Проверьте, что devai.py запущен.', true); }
     else typer.flush();
@@ -1087,12 +1197,14 @@ async function send(text){
       messages.push({role:'assistant', content:acc});
       addActions(asEl.body);
     } else if(failed){
-      messages.pop();                                // ответа нет: возвращаем текст в поле ввода
+      messages.pop();                                // ответа нет: возвращаем текст и вложения в поле ввода
       out.innerHTML = '';
       if(!input.value) input.value = text;
+      pending = files.slice(); paintTray();
       autosize();
     } else {
       messages.pop(); userEl.root.remove(); asEl.root.remove();
+      pending = files.slice(); paintTray();
       if(!messages.length) showEmpty();
     }
     setBusy(false);
@@ -1100,11 +1212,131 @@ async function send(text){
   }
 }
 
+/* ---------- вложения ---------- */
+const TEXT_EXT = /\.(txt|md|markdown|rst|py|pyi|js|mjs|jsx|ts|tsx|java|kt|kts|c|h|cpp|cc|hpp|cs|go|rs|rb|php|swift|html|htm|css|scss|json|xml|yml|yaml|toml|ini|cfg|conf|csv|tsv|log|sql|sh|bat|ps1|gradle|properties|vue|svelte|lua|r|dart|tex|env|gitignore)$/i;
+const MAX_FILES = 5, MAX_TEXT = 12000;
+
+function toast(msg){
+  toastEl.textContent = msg; toastEl.hidden = false;
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => { toastEl.hidden = true; }, 3200);
+}
+
+const once = (el, ev, ms) => new Promise((res, rej) => {
+  const t = setTimeout(() => { el.removeEventListener(ev, h); rej(new Error('timeout')); }, ms);
+  const h = () => { clearTimeout(t); res(); };
+  el.addEventListener(ev, h, {once:true});
+});
+
+function readText(blob){
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(String(r.result || ''));
+    r.onerror = () => rej(r.error);
+    r.readAsText(blob);
+  });
+}
+
+function drawScaled(src, w, h, max, q){
+  const k = Math.min(1, max / Math.max(w, h));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
+  c.getContext('2d').drawImage(src, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', q);
+}
+
+async function imageData(f){
+  const url = URL.createObjectURL(f);
+  try{
+    const im = new Image();
+    const loaded = new Promise((res, rej) => { im.onload = res; im.onerror = () => rej(new Error('image')); });
+    im.src = url; await loaded;
+    return {dataUrl: drawScaled(im, im.naturalWidth, im.naturalHeight, 1024, 0.82),
+            thumb: drawScaled(im, im.naturalWidth, im.naturalHeight, 160, 0.65)};
+  } finally { URL.revokeObjectURL(url); }
+}
+
+/* Из видео берутся 4 кадра, равномерно по времени: модели видят их как набор картинок */
+async function videoData(f){
+  const url = URL.createObjectURL(f);
+  const v = document.createElement('video');
+  v.muted = true; v.playsInline = true; v.preload = 'auto'; v.src = url;
+  try{
+    await once(v, 'loadedmetadata', 15000);
+    const dur = isFinite(v.duration) && v.duration > 0 ? v.duration : 1, n = 4, frames = [];
+    let thumb = '';
+    for(let i = 0; i < n; i++){
+      v.currentTime = Math.min(Math.max(dur - 0.05, 0), dur * (i + 0.5) / n);
+      await once(v, 'seeked', 15000);
+      frames.push(drawScaled(v, v.videoWidth, v.videoHeight, 768, 0.75));
+      if(i === 0) thumb = drawScaled(v, v.videoWidth, v.videoHeight, 160, 0.65);
+    }
+    return {frames, thumb};
+  } finally { URL.revokeObjectURL(url); }
+}
+
+async function readAttachment(f){
+  const base = {id:uid(), name:f.name || 'файл', size:f.size};
+  const type = f.type || '';
+  if(/^image\//.test(type)) return Object.assign(base, {kind:'image'}, await imageData(f));
+  if(/^video\//.test(type)) return Object.assign(base, {kind:'video'}, await videoData(f));
+  if(/^text\//.test(type) || /json|xml|javascript|x-sh|yaml/.test(type) || TEXT_EXT.test(base.name)){
+    const t = await readText(f.size > 300000 ? f.slice(0, 300000) : f);
+    return Object.assign(base, {kind:'text', text:t.slice(0, MAX_TEXT), cut:t.length > MAX_TEXT || f.size > 300000});
+  }
+  return null;
+}
+
+async function addFiles(list){
+  for(const f of Array.from(list || [])){
+    if(pending.length >= MAX_FILES){ toast('Можно прикрепить не больше ' + MAX_FILES + ' файлов'); break; }
+    try{
+      const a = await readAttachment(f);
+      if(a) pending.push(a); else toast('Файл «' + f.name + '» не поддерживается. Подходят текст, код, фото и видео.');
+    }catch(e){ toast('Не удалось прочитать «' + f.name + '»'); }
+  }
+  paintTray();
+}
+
+function paintTray(){
+  tray.hidden = !pending.length;
+  tray.innerHTML = '';
+  for(const a of pending){
+    const d = document.createElement('div');
+    d.className = 'att';
+    d.innerHTML = (a.thumb ? `<img src="${attr(a.thumb)}" alt="">` : `<div class="fi">${ICON_FILE}</div>`) +
+      `<span>${esc(a.name)}</span><button data-rm="${attr(a.id)}" aria-label="Убрать вложение">×</button>`;
+    tray.append(d);
+  }
+  if(!busy) go.disabled = !input.value.trim() && !pending.length;
+  layout();
+}
+
+attachBtn.addEventListener('click', () => { attachMenu.hidden = !attachMenu.hidden; });
+attachMenu.addEventListener('click', e => {
+  const b = e.target.closest('[data-pick]');
+  if(!b) return;
+  attachMenu.hidden = true;
+  ({image:inImage, video:inVideo, file:inFile})[b.dataset.pick].click();
+});
+for(const el of [inImage, inVideo, inFile]){
+  el.addEventListener('change', () => { const list = Array.from(el.files || []); el.value = ''; addFiles(list); });
+}
+tray.addEventListener('click', e => {
+  const b = e.target.closest('[data-rm]');
+  if(!b) return;
+  pending = pending.filter(a => a.id !== b.dataset.rm);
+  paintTray();
+});
+document.addEventListener('click', e => {
+  if(!attachMenu.hidden && !attachMenu.contains(e.target) && !attachBtn.contains(e.target)) attachMenu.hidden = true;
+});
+
 /* ---------- ввод и управление ---------- */
 function autosize(){
   input.style.height = 'auto';
   input.style.height = Math.min(input.scrollHeight, 200) + 'px';
-  if(!busy) go.disabled = !input.value.trim();
+  if(!busy) go.disabled = !input.value.trim() && !pending.length;
 }
 function layout(){
   chat.style.paddingTop = (topEl.offsetHeight + 12) + 'px';

@@ -2,6 +2,7 @@ package app.devai;
 
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
@@ -16,15 +17,19 @@ import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import android.net.Uri;
 import java.io.File;
 
 /** Оболочка: интерфейс DevAI из assets, а модель работает на телефоне через встроенный движок llama.cpp. */
 public class MainActivity extends Activity {
     private static final int PICK_MODEL = 41;
+    private static final int PICK_ATTACH = 42;
 
     private static final int DARK_BG = 0xFF050506;     // совпадает с фоном интерфейса, чтобы не было белых полос
     private static final int LIGHT_BG = 0xFFF3F4F8;
@@ -33,6 +38,7 @@ public class MainActivity extends Activity {
     private ModelManager models;
     private LlamaServer server;
     private int topInset = 0, bottomInset = 0;
+    private ValueCallback<Uri[]> attachCallback;
 
     @Override
     protected void onCreate(Bundle state) {
@@ -58,6 +64,20 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 pushInsets();
+            }
+        });
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+                if (attachCallback != null) attachCallback.onReceiveValue(null);
+                attachCallback = callback;
+                try {
+                    startActivityForResult(params.createIntent(), PICK_ATTACH);
+                } catch (ActivityNotFoundException e) {
+                    attachCallback = null;
+                    return false;
+                }
+                return true;
             }
         });
         web.loadUrl("file:///android_asset/index.html");
@@ -88,6 +108,13 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         super.onActivityResult(req, res, data);
+        if (req == PICK_ATTACH) {
+            if (attachCallback != null) {
+                attachCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(res, data));
+                attachCallback = null;
+            }
+            return;
+        }
         if (req == PICK_MODEL && res == RESULT_OK && data != null && data.getData() != null) {
             models.importFrom(data.getData());
         }
