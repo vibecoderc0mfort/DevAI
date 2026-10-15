@@ -29,7 +29,7 @@ if not OLLAMA.startswith("http"):
     OLLAMA = "http://" + OLLAMA
 OLLAMA = OLLAMA.replace("0.0.0.0", "127.0.0.1")
 
-DEFAULT_MODEL = os.environ.get("DEVAI_MODEL", "qwen2.5-coder:7b")
+DEFAULT_MODEL = os.environ.get("DEVAI_MODEL", "")   # пусто: берётся первая установленная в Ollama модель
 NUM_CTX = int(os.environ.get("DEVAI_CTX", "8192"))  # размер контекста в токенах
 
 SYSTEM_PROMPT = (
@@ -241,6 +241,9 @@ class Server(ThreadingHTTPServer):
 # --------------------------------------------------------------------------- CLI
 
 def run_cli(model):
+    if not model:
+        print("В Ollama нет установленных моделей. Установите любую командой: ollama pull <имя модели>")
+        return
     print(f"DevAI {VERSION}, модель {model}. Команды: /new — новый чат, /exit — выход.")
     history = []
     while True:
@@ -281,13 +284,16 @@ def run_cli(model):
 def main():
     global DEFAULT_MODEL
     ap = argparse.ArgumentParser(description=f"DevAI {VERSION}")
-    ap.add_argument("--model", default=DEFAULT_MODEL, help="модель Ollama по умолчанию")
+    ap.add_argument("--model", default=DEFAULT_MODEL, help="модель Ollama (по умолчанию первая установленная)")
     ap.add_argument("--port", type=int, default=7860)
     ap.add_argument("--host", default="127.0.0.1",
                     help="по умолчанию только этот компьютер; у интерфейса нет пароля")
     ap.add_argument("--cli", action="store_true", help="чат в терминале вместо браузера")
     ap.add_argument("--no-browser", action="store_true", help="не открывать браузер")
     args = ap.parse_args()
+    if not args.model:
+        installed, _ = list_models()
+        args.model = installed[0] if installed else ""
     DEFAULT_MODEL = args.model
 
     if args.cli:
@@ -295,7 +301,7 @@ def main():
 
     url = f"http://{args.host}:{args.port}"
     server = Server((args.host, args.port), Handler)
-    print(f"DevAI {VERSION} запущен: {url}  (модель {args.model}). Остановить: Ctrl+C")
+    print(f"DevAI {VERSION} запущен: {url}  (модель {args.model or "не выбрана"}). Остановить: Ctrl+C")
     if args.host in ("0.0.0.0", "::"):
         ip = lan_ip()
         if ip:

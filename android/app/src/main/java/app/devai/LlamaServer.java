@@ -51,7 +51,7 @@ class LlamaServer {
                 "--host", "127.0.0.1",
                 "--port", String.valueOf(port),
                 "--api-key", key,
-                "-c", "8192",
+                "-c", model.getName().startsWith("socket-") ? "1024" : "8192",
                 "-t", String.valueOf(threads()),
                 "-np", "1");
             pb.environment().put("LD_LIBRARY_PATH", libDir);

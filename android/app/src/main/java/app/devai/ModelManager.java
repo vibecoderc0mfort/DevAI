@@ -24,15 +24,8 @@ class ModelManager {
 
     private interface Work { File run() throws Exception; }
 
-    /** id, название, примерный размер, ссылка. Если ссылка не открылась, можно выбрать свой файл. */
-    static final String[][] CATALOG = {
-        {"coder-0.5b", "Qwen2.5-Coder 0.5B (самая лёгкая)", "около 0,4 ГБ",
-            "https://huggingface.co/Qwen/Qwen2.5-Coder-0.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-0.5b-instruct-q4_k_m.gguf"},
-        {"coder-1.5b", "Qwen2.5-Coder 1.5B (баланс)", "около 1,1 ГБ",
-            "https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf"},
-        {"coder-3b", "Qwen2.5-Coder 3B (умнее, нужно больше памяти)", "около 2,1 ГБ",
-            "https://huggingface.co/Qwen/Qwen2.5-Coder-3B-Instruct-GGUF/resolve/main/qwen2.5-coder-3b-instruct-q4_k_m.gguf"},
-    };
+    /** Готовых загрузок в приложении нет: в комплекте только Socket 1.0, остальное пользователь добавляет своим файлом. */
+    static final String[][] CATALOG = {};
 
     final File dir;
     volatile String busy = "idle";      // idle | downloading | importing
@@ -53,6 +46,34 @@ class ModelManager {
     }
 
     void setListener(Listener l) { listener = l; }
+
+    static final String BUNDLED = "socket-1.0.gguf";
+
+    /** Кладёт встроенную модель Socket 1.0 в папку моделей (при первом запуске или по просьбе пользователя). */
+    synchronized boolean installBundled(boolean force) {
+        if (!force && prefs.getBoolean("bundled_done", false)) return false;
+        File target = new File(dir, BUNDLED);
+        try {
+            if (!target.exists()) {
+                File part = new File(dir, BUNDLED + ".part");
+                try (InputStream in = ctx.getAssets().open(BUNDLED); OutputStream out = new FileOutputStream(part)) {
+                    byte[] buf = new byte[64 * 1024];
+                    int n;
+                    while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                }
+                if (!part.renameTo(target)) throw new IOException("не удалось сохранить файл");
+            }
+            prefs.edit().putBoolean("bundled_done", true).apply();
+            return true;
+        } catch (IOException e) {
+            message = "Встроенной модели нет в этой сборке приложения";
+            return false;
+        }
+    }
+
+    boolean socketDefaultDone() { return prefs.getBoolean("socket_default_v1", false); }
+
+    void markSocketDefault() { prefs.edit().putBoolean("socket_default_v1", true).apply(); }
 
     boolean isBusy() { return !"idle".equals(busy); }
 
